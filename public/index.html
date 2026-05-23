@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fireshield Live Dashboard</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121214;
+            color: #e2e8f0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        header {
+            width: 100%;
+            max-width: 900px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+        h1 {
+            color: #ef4444;
+            margin: 0;
+            font-size: 2.5rem;
+            letter-spacing: -1px;
+        }
+        .subtitle {
+            color: #94a3b8;
+            margin: 5px 0 0 0;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 900px;
+        }
+        .card {
+            background-color: #1e1e24;
+            border: 1px solid #2d2d34;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .status-display {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .value-circle {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            border: 8px solid #22c55e;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+        .current-value {
+            font-size: 3.5rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+        .unit {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+        .status-badge {
+            background-color: #14532d;
+            color: #4ade80;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        .alert-active .value-circle {
+            border-color: #ef4444;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+        }
+        .alert-active .status-badge {
+            background-color: #7f1d1d;
+            color: #f87171;
+            animation: pulse 1.5s infinite;
+        }
+        .log-container {
+            display: flex;
+            flex-direction: column;
+            height: 300px;
+        }
+        h2 {
+            margin-top: 0;
+            font-size: 1.25rem;
+            color: #f1f5f9;
+        }
+        .log-entries {
+            flex-grow: 1;
+            overflow-y: auto;
+            background-color: #0f172a;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 0.875rem;
+            color: #38bdf8;
+        }
+        .log-line {
+            margin-bottom: 6px;
+            border-bottom: 1px solid #1e293b;
+            padding-bottom: 4px;
+        }
+        .log-line.alert {
+            color: #f87171;
+            font-weight: bold;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>FIRESHIELD</h1>
+        <p class="subtitle">Smart Smoke Monitoring Network Dashboard</p>
+    </header>
+
+    <div class="dashboard-grid">
+        <div class="card status-display" id="dashboard-status">
+            <h2>Current Level</h2>
+            <div class="value-circle">
+                <span class="current-value" id="smoke-value">0</span>
+                <span class="unit">PPM</span>
+            </div>
+            <div class="status-badge" id="status-text">SYSTEM CLEAR</div>
+        </div>
+
+        <div class="card log-container">
+            <h2>Live Signal Activity Log</h2>
+            <div class="log-entries" id="log-stream">
+                <div class="log-line">Awaiting active data stream link...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const smokeValueEl = document.getElementById('smoke-value');
+        const statusTextEl = document.getElementById('status-text');
+        const statusCardEl = document.getElementById('dashboard-status');
+        const logStreamEl = document.getElementById('log-stream');
+
+        function updateUI(data) {
+            smokeValueEl.innerText = data.smoke;
+            const timestamp = new Date(data.timestamp).toLocaleTimeString();
+            
+            // Build log item
+            const logLine = document.createElement('div');
+            logLine.classList.add('log-line');
+
+            if (data.alert) {
+                statusTextEl.innerText = "WARNING: SMOKE DETECTED";
+                statusCardEl.classList.add('alert-active');
+                logLine.classList.add('alert');
+                logLine.innerText = ⁠ [${timestamp}] ⚠️ CRITICAL ALERT: Level at ${data.smoke} PPM! ⁠;
+            } else {
+                statusTextEl.innerText = "SYSTEM CLEAR";
+                statusCardEl.classList.remove('alert-active');
+                logLine.innerText = ⁠ [${timestamp}] Signal nominal: ${data.smoke} PPM ⁠;
+            }
+
+            logStreamEl.insertBefore(logLine, logStreamEl.firstChild);
+            
+            // Keep stream clean and capped at 35 items
+            while (logStreamEl.children.length > 35) {
+                logStreamEl.removeChild(logStreamEl.lastChild);
+            }
+        }
+
+        socket.on('init', (payload) => {
+            if(payload.history.length > 0) {
+                logStreamEl.innerHTML = '';
+                payload.history.forEach(item => updateUI(item));
+            }
+        });
+
+        socket.on('smoke', (data) => {
+            updateUI(data);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fireshield Smart Smoke Detector</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #141a30;
+    --text: #e6ecff;
+    --muted: #8ea0c9;
+    --good: #2ecc71;
+    --danger: #ff4d4f;
+    --blue: #4f8cff;
+    --border: #233056;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 24px 16px 48px; }
+
+  header {
+    display: flex; align-items: center;
+    justify-content: space-between; flex-wrap: wrap;
+    gap: 12px; margin-bottom: 24px;
+  }
+  h1 { font-size: 22px; letter-spacing: 0.3px; }
+  .status {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 14px; border-radius: 999px;
+    background: var(--panel); border: 1px solid var(--border);
+    font-size: 13px; color: var(--muted);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.online  { background: var(--good);   box-shadow: 0 0 8px var(--good); }
+  .dot.offline { background: var(--danger); }
+
+  .banner {
+    display: none; align-items: center; gap: 10px;
+    background: var(--danger); color: #fff;
+    padding: 12px 18px; border-radius: 10px;
+    margin-bottom: 16px; font-weight: 700;
+    animation: pulse 1.2s infinite;
+  }
+  .banner.show { display: flex; }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0o
+
